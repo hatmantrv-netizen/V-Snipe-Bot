@@ -31,12 +31,17 @@ if (!process.env.GROQ_API_KEY) {
     "⚠️  GROQ_API_KEY manquant dans le .env — le bot fonctionnera mais sans le palier de secours Groq. Ajoute-la pour une meilleure disponibilité (https://console.groq.com/keys)."
   );
 }
-if (
-  CONFIG.CHANNELS.DESCRIPTION.startsWith("METTRE_ICI") ||
-  CONFIG.CHANNELS.PRICE.startsWith("METTRE_ICI")
-) {
+
+const descriptionChannels = CONFIG.CHANNELS.DESCRIPTION.filter(
+  (id) => id && !id.startsWith("METTRE_ICI")
+);
+const priceChannels = CONFIG.CHANNELS.PRICE.filter(
+  (id) => id && !id.startsWith("METTRE_ICI")
+);
+
+if (descriptionChannels.length === 0 || priceChannels.length === 0) {
   console.error(
-    "❌ Configure d'abord les IDs de salons dans src/config.js (CHANNELS.DESCRIPTION / CHANNELS.PRICE). Arrêt."
+    "❌ Configure d'abord au moins un ID de salon valide dans src/config.js (CHANNELS.DESCRIPTION / CHANNELS.PRICE). Arrêt."
   );
   process.exit(1);
 }
@@ -52,8 +57,8 @@ const client = new Client({
 
 client.once(Events.ClientReady, (c) => {
   console.log(`✅ Bot connecté en tant que ${c.user.tag}`);
-  console.log(`   Salon description : ${CONFIG.CHANNELS.DESCRIPTION}`);
-  console.log(`   Salon prix        : ${CONFIG.CHANNELS.PRICE}`);
+  console.log(`   Salons description : ${descriptionChannels.join(", ")}`);
+  console.log(`   Salons prix        : ${priceChannels.join(", ")}`);
 });
 
 client.on(Events.MessageCreate, async (message) => {
@@ -61,9 +66,9 @@ client.on(Events.MessageCreate, async (message) => {
     if (message.author.bot) return;
     if (message.attachments.size === 0) return;
 
-    if (message.channelId === CONFIG.CHANNELS.DESCRIPTION) {
+    if (descriptionChannels.includes(message.channelId)) {
       await handleDescriptionMessage(message);
-    } else if (message.channelId === CONFIG.CHANNELS.PRICE) {
+    } else if (priceChannels.includes(message.channelId)) {
       await handlePriceMessage(message);
     }
   } catch (err) {
